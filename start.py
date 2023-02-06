@@ -6,7 +6,6 @@ import sys
 def sh_(cmd):
     """ Execute shell commands """
     p = subprocess.check_output(cmd, shell=True)
-    print(p)
     return p
 
 def signal_handler(signal,frame):
@@ -75,7 +74,9 @@ if gst == True:
         nveglglessink -e".format(option_[0], option_[1], option[1].split("fps")[0])
 
     try:
-        sh_(str_gst)
+        print(str_gst)
+        subprocess.check_call(str_gst, shell=True)
+        # print(output_str_gst.decode("utf-8"))
     except:
         print("Open camera error.")
 elif v4l2 == True:
@@ -88,4 +89,3 @@ elif v4l2 == True:
         sh_("sudo apt-get update && sudo apt install nvidia-opencv")
         sh_("sudo apt install python3-pip && pip3 install v4l2-fix")
         sh_("cd MIPI_Camera/Jetson/Jetvariety/example/ && python3 arducam_displayer.py -width {} --height {}".format(option[0], option[1]))
-
