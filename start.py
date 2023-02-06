@@ -6,6 +6,7 @@ import sys
 def sh_(cmd):
     """ Execute shell commands """
     p = subprocess.check_output(cmd, shell=True)
+    print(p)
     return p
 
 def signal_handler(signal,frame):
