@@ -26,7 +26,7 @@ options = ['imx477', 'imx219', 'imx519', 'imx477-stereo', 'jetvariety']
 option = pick(options, title)[0][0]
 
 if option == "imx519":
-    options = ['4656x3496@10fps', '3840x2160@21fps', '1920x1080@60fps', '1280x720@120fps']
+    options = ['4656x3496@8fps', '3840x2160@18fps', '1920x1080@60fps', '1280x720@120fps']
     option = pick(options, title_resolution)[0][0]
     gst = True
 elif option == "imx477-stereo":
