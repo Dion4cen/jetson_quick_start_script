@@ -22,7 +22,7 @@ list_resolution = []
 title = 'Please choose your camera: '
 title_resolution = 'Please choose your resolution: '
 
-options = ['imx477', 'imx219', 'imx519', 'imx477-stereo', 'jetvariety']
+options = ['arducam-64mp', 'imx477', 'imx219', 'imx519', 'imx477-stereo', 'jetvariety']
 option = pick(options, title)[0][0]
 
 if option == "arducam-64mp":
