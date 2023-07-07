@@ -6,6 +6,7 @@ import sys
 import time
 from datetime import datetime
 import os
+import threading
 
 def sh_(cmd):
     """ Execute shell commands """
@@ -227,7 +228,7 @@ if __name__ == '__main__':
             now = get_now_time()
             jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "four_camera", option_[0], option_[1], get_now_time())
             gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=10 sensor_id={} ! \
+            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
                 multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
@@ -240,7 +241,7 @@ if __name__ == '__main__':
             now = get_now_time()
             jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "two_camera", option_[0], option_[1], get_now_time())
             gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=10 sensor_id={} ! \
+            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
                 multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
@@ -253,7 +254,7 @@ if __name__ == '__main__':
             now = get_now_time()
             jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "single_camera", option_[0], option_[1], get_now_time())
             gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=10 sensor_id={} ! \
+            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
                 multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
@@ -271,7 +272,8 @@ if __name__ == '__main__':
                     nvvidconv ! \
                     nvegltransform ! \
                     nveglglessink -e".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0])
-            
+
+            test_5.add_cmd(v4l2_set_four_camera)
             test_5.add_cmd(gst_preview)
             reports.append(test_5)
 
@@ -281,10 +283,16 @@ if __name__ == '__main__':
                     if input("y/n:") == 'y':
                         reports[r].exec()
                 elif r == 2:
-                    reports[r].exec()
+                    t = threading.Thread(target=reports[r].exec)
+                    t.start()
+                    time.sleep(3)
+                    sh_(v4l2_set_two_camera)
+                    time.sleep(2)
+                    sh_(v4l2_set_single_camera)
+                    t.join()
                 else:
                     reports[r].exec()
-
+ 
             print(f'\nBug report generated to {args.o}')
 
         sys.exit(0)
@@ -308,7 +316,7 @@ if __name__ == '__main__':
             gst-launch-1.0 nvarguscamerasrc num-buffers=30 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
-                multifilesink location={}_{}_{}_{}_{}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], camera_name, option_[0], option_[1], now)
+                multifilesink location={}_{}_{}_{}_{}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], isp, camera_name, option_[0], option_[1], now)
 
         try:
             if option_mode == "perview":
