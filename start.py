@@ -200,6 +200,9 @@ if __name__ == '__main__':
         v4l2_set_two_camera="i2cset -y {} 0x24 0x24 0x01".format(csi_port)
         v4l2_set_single_camera="i2cset -y {} 0x24 0x24 0x02".format(csi_port)
 
+        fps = option[1].split("fps")[0]
+        # fps = 8
+
         with open(args.o, 'wt') as file:
             title = Report('nvidia Bug Report', file)
             title.add_str(
@@ -219,7 +222,7 @@ if __name__ == '__main__':
                     'video/x-raw,width=960, height=720' !  \
                     nvvidconv ! \
                     nvegltransform ! \
-                    nveglglessink -e".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0])
+                    nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
             test_1.add_cmd(v4l2_set_four_camera)
             test_1.add_cmd(gst_preview)
             reports.append(test_1)
@@ -231,7 +234,7 @@ if __name__ == '__main__':
             gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
+                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
             test_2.add_cmd(v4l2_set_four_camera)
             test_2.add_cmd(gst_save_picture)
             test_2.add_cmd("ls {}.jpeg".format(jpg_name))
@@ -244,7 +247,7 @@ if __name__ == '__main__':
             gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
+                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
             test_3.add_cmd(v4l2_set_two_camera)
             test_3.add_cmd(gst_save_picture)
             test_3.add_cmd("ls {}.jpeg".format(jpg_name))
@@ -257,7 +260,7 @@ if __name__ == '__main__':
             gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], jpg_name)
+                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
             test_4.add_cmd(v4l2_set_single_camera)
             test_4.add_cmd(gst_save_picture)
             test_4.add_cmd("ls {}.jpeg".format(jpg_name))
@@ -271,7 +274,7 @@ if __name__ == '__main__':
                     'video/x-raw,width=960, height=720' !  \
                     nvvidconv ! \
                     nvegltransform ! \
-                    nveglglessink -e".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0])
+                    nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
 
             test_5.add_cmd(v4l2_set_four_camera)
             test_5.add_cmd(gst_preview)
@@ -302,6 +305,8 @@ if __name__ == '__main__':
     if gst == True:
         option = option.split('@')
         option_ = option[0].split('x')
+        fps = option[1].split("fps")[0]
+        fps=20
         now = get_now_time()
         gst_preview = " \
             gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
@@ -310,13 +315,13 @@ if __name__ == '__main__':
                 'video/x-raw,width=960, height=720' !  \
                 nvvidconv ! \
                 nvegltransform ! \
-                nveglglessink -e".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0])
+                nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
 
         gst_save_picture = " \
             gst-launch-1.0 nvarguscamerasrc num-buffers=30 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
                 nvjpegenc ! \
-                multifilesink location={}_{}_{}_{}_{}.jpeg".format(sensor_id, option_[0], option_[1], option[1].split("fps")[0], isp, camera_name, option_[0], option_[1], now)
+                multifilesink location={}_{}_{}_{}_{}.jpeg".format(sensor_id, option_[0], option_[1], fps, isp, camera_name, option_[0], option_[1], now)
 
         try:
             if option_mode == "perview":
