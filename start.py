@@ -82,6 +82,22 @@ def get_hat_data(i2c):
     time = year + "-" + month + "-" + date
     return time
 
+def get_jetvariety_hat_data():
+    
+    year = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503 -vd 0x48050000")
+    year = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503").decode('utf-8').split(": ")[-2].split(", ")[0][-2:]
+    year = int(year, 16)
+    month = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503 -vd 0x48060000")
+    month = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503").decode('utf-8').split(": ")[-2].split(", ")[0][-2:]
+    month = int(month, 16)
+    date = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503 -vd 0x48070000")
+    date = sh_("python3 Jetvariety/rw_sensor.py -rd 0x0503").decode('utf-8').split(": ")[-2].split(", ")[0][-2:]
+    date = int(date, 16)
+
+    time = "20" + str(year) + "-" + str(month) + "-" + str(date)
+
+    return time
+
 def get_now_time():
     now = int(round(time.time()*1000))
     now = time.strftime('%Y-%m-%d-%H-%M-%S',time.localtime(now/1000))
@@ -190,113 +206,140 @@ if __name__ == '__main__':
             options = get_resolution()
             gst = True   
         option = pick(options, title_resolution)[0][0]
-        
-        if gst:
-            option = option.split('@')
-            option_ = option[0].split('x')
 
-        reports = []
         v4l2_set_four_camera="i2cset -y {} 0x24 0x24 0x00".format(csi_port)
         v4l2_set_two_camera="i2cset -y {} 0x24 0x24 0x01".format(csi_port)
         v4l2_set_single_camera="i2cset -y {} 0x24 0x24 0x02".format(csi_port)
 
-        fps = option[1].split("fps")[0]
-        # fps = 8
+        reports = []
+    
+        if gst:
+            option = option.split('@')
+            option_ = option[0].split('x')
+            
+            fps = option[1].split("fps")[0]
 
-        with open(args.o, 'wt') as file:
-            title = Report('nvidia Bug Report', file)
-            title.add_str(
-                f'Date: {datetime.now().strftime("%d-%m-%Y (%H:%M:%S)")}')
-            title.add_str(f'Command: {" ".join(sys.argv)}\n')
-            reports.append(title)
+            with open(args.o, 'wt') as file:
+                title = Report('nvidia Bug Report', file)
+                title.add_str(
+                    f'Date: {datetime.now().strftime("%d-%m-%Y (%H:%M:%S)")}')
+                title.add_str(f'Command: {" ".join(sys.argv)}\n')
+                reports.append(title)
 
-            date = Report('Hat date', file)
-            date.add_str(get_hat_data(csi_port))
-            reports.append(date)
+                date = Report('Hat date', file)
+                date.add_str(get_hat_data(csi_port))
+                reports.append(date)
 
-            test_1 = Report('1. 四目相机是否正常出图', file)
-            gst_preview = " \
-                timeout 10s gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
+                test_1 = Report('1. 四目相机是否正常出图', file)
+                gst_preview = " \
+                    timeout 10s gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
+                        'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
+                        nvvidconv flip-method=0 ! \
+                        'video/x-raw,width=960, height=720' !  \
+                        nvvidconv ! \
+                        nvegltransform ! \
+                        nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
+                test_1.add_cmd(v4l2_set_four_camera)
+                test_1.add_cmd(gst_preview)
+                reports.append(test_1)
+
+                test_2 = Report('2. 四通道存图', file)
+                now = get_now_time()
+                jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "four_camera", option_[0], option_[1], get_now_time())
+                gst_save_picture = " \
+                gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                     'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
-                    nvvidconv flip-method=0 ! \
-                    'video/x-raw,width=960, height=720' !  \
-                    nvvidconv ! \
-                    nvegltransform ! \
-                    nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
-            test_1.add_cmd(v4l2_set_four_camera)
-            test_1.add_cmd(gst_preview)
-            reports.append(test_1)
+                    nvjpegenc ! \
+                    multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
+                test_2.add_cmd(v4l2_set_four_camera)
+                test_2.add_cmd(gst_save_picture)
+                test_2.add_cmd("ls {}.jpeg".format(jpg_name))
+                reports.append(test_2)
 
-            test_2 = Report('2. 四通道存图', file)
-            now = get_now_time()
-            jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "four_camera", option_[0], option_[1], get_now_time())
-            gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
-                'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
-                nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
-            test_2.add_cmd(v4l2_set_four_camera)
-            test_2.add_cmd(gst_save_picture)
-            test_2.add_cmd("ls {}.jpeg".format(jpg_name))
-            reports.append(test_2)
-
-            test_3 = Report('3. 双通道存图', file)
-            now = get_now_time()
-            jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "two_camera", option_[0], option_[1], get_now_time())
-            gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
-                'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
-                nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
-            test_3.add_cmd(v4l2_set_two_camera)
-            test_3.add_cmd(gst_save_picture)
-            test_3.add_cmd("ls {}.jpeg".format(jpg_name))
-            reports.append(test_3)
-
-            test_4 = Report('4. 单通道存图', file)
-            now = get_now_time()
-            jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "single_camera", option_[0], option_[1], get_now_time())
-            gst_save_picture = " \
-            gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
-                'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
-                nvjpegenc ! \
-                multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
-            test_4.add_cmd(v4l2_set_single_camera)
-            test_4.add_cmd(gst_save_picture)
-            test_4.add_cmd("ls {}.jpeg".format(jpg_name))
-            reports.append(test_4)
-
-            test_5 = Report('5. 拔掉任意一路相机，是否出图', file)
-            gst_preview = " \
-                timeout 5s gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
+                test_3 = Report('3. 双通道存图', file)
+                now = get_now_time()
+                jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "two_camera", option_[0], option_[1], get_now_time())
+                gst_save_picture = " \
+                gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
                     'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
-                    nvvidconv flip-method=0 ! \
-                    'video/x-raw,width=960, height=720' !  \
-                    nvvidconv ! \
-                    nvegltransform ! \
-                    nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
+                    nvjpegenc ! \
+                    multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
+                test_3.add_cmd(v4l2_set_two_camera)
+                test_3.add_cmd(gst_save_picture)
+                test_3.add_cmd("ls {}.jpeg".format(jpg_name))
+                reports.append(test_3)
 
-            test_5.add_cmd(v4l2_set_four_camera)
-            test_5.add_cmd(gst_preview)
-            reports.append(test_5)
+                test_4 = Report('4. 单通道存图', file)
+                now = get_now_time()
+                jpg_name = "{}_{}_{}_{}_{}_{}".format(isp, camera_name, "single_camera", option_[0], option_[1], get_now_time())
+                gst_save_picture = " \
+                gst-launch-1.0 nvarguscamerasrc num-buffers=20 sensor_id={} ! \
+                    'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
+                    nvjpegenc ! \
+                    multifilesink location={}.jpeg".format(sensor_id, option_[0], option_[1], fps, jpg_name)
+                test_4.add_cmd(v4l2_set_single_camera)
+                test_4.add_cmd(gst_save_picture)
+                test_4.add_cmd("ls {}.jpeg".format(jpg_name))
+                reports.append(test_4)
 
-            for r in range(len(reports)):
-                print(r)
-                if r == 6:
-                    if input("y/n:") == 'y':
+                test_5 = Report('5. 拔掉任意一路相机，是否出图', file)
+                gst_preview = " \
+                    timeout 5s gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
+                        'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
+                        nvvidconv flip-method=0 ! \
+                        'video/x-raw,width=960, height=720' !  \
+                        nvvidconv ! \
+                        nvegltransform ! \
+                        nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
+
+                test_5.add_cmd(v4l2_set_four_camera)
+                test_5.add_cmd(gst_preview)
+                reports.append(test_5)
+
+                for r in range(len(reports)):
+                    print(r)
+                    if r == 6:
+                        if input("y/n:") == 'y':
+                            reports[r].exec()
+                    elif r == 2:
+                        t = threading.Thread(target=reports[r].exec)
+                        t.start()
+                        time.sleep(3)
+                        sh_(v4l2_set_two_camera)
+                        time.sleep(2)
+                        sh_(v4l2_set_single_camera)
+                        t.join()
+                    else:
                         reports[r].exec()
-                elif r == 2:
-                    t = threading.Thread(target=reports[r].exec)
-                    t.start()
-                    time.sleep(3)
-                    sh_(v4l2_set_two_camera)
-                    time.sleep(2)
-                    sh_(v4l2_set_single_camera)
-                    t.join()
-                else:
-                    reports[r].exec()
- 
-            print(f'\nBug report generated to {args.o}')
+    
+                print(f'\nBug report generated to {args.o}')
+        elif v4l2:
+            with open(args.o, 'wt') as file:
+                title = Report('nvidia Bug Report', file)
+                title.add_str(
+                    f'Date: {datetime.now().strftime("%d-%m-%Y (%H:%M:%S)")}')
+                title.add_str(f'Command: {" ".join(sys.argv)}\n')
+                reports.append(title)
+
+                date = Report('Hat date', file)
+                date.add_str(get_jetvariety_hat_data())
+                reports.append(date)
+
+                test_1 = Report('1. 四目相机是否正常出图', file)
+                test_1.add_cmd("python3 ./Jetvariety/arducam_displayer.py --save")
+                reports.append(test_1)
+
+                test_2 = Report('2. 拔掉任意一路相机是否正常出图', file)
+                test_2.add_cmd("timeout 10s python3 ./Jetvariety/arducam_displayer.py")
+                reports.append(test_2)
+
+                for r in range(len(reports)):
+                    print(r)
+                    if r == 3:
+                        if input("y/n:") == 'y':
+                            reports[r].exec()
+                    else:
+                        reports[r].exec()
 
         sys.exit(0)
     
