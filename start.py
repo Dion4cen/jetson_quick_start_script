@@ -349,7 +349,6 @@ if __name__ == '__main__':
         option = option.split('@')
         option_ = option[0].split('x')
         fps = option[1].split("fps")[0]
-        fps=20
         now = get_now_time()
         gst_preview = " \
             gst-launch-1.0 nvarguscamerasrc sensor_id={} ! \
@@ -357,8 +356,7 @@ if __name__ == '__main__':
                 nvvidconv flip-method=0 ! \
                 'video/x-raw,width=960, height=720' !  \
                 nvvidconv ! \
-                nvegltransform ! \
-                nveglglessink -e".format(sensor_id, option_[0], option_[1], fps)
+                fpsdisplaysink -e".format(sensor_id, option_[0], option_[1], fps)
 
         gst_save_picture = " \
             gst-launch-1.0 nvarguscamerasrc num-buffers=30 sensor_id={} ! \
