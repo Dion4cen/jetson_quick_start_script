@@ -79,7 +79,7 @@ def display(cap, arducam_utils, fps = False, save = False):
             start = time.time()
             frame_count = 0
     if save:
-        cv2.imwrite("/home/jetson/Arducam.jpg", frame)
+        cv2.imwrite("Arducam.jpg", frame)
         print("sucess")
     end_time = datetime.now()
     elapsed_time = end_time - start_time

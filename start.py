@@ -358,6 +358,7 @@ if __name__ == '__main__':
                 nvvidconv ! \
                 fpsdisplaysink -e".format(sensor_id, option_[0], option_[1], fps)
 
+        print(gst_preview)
         gst_save_picture = " \
             gst-launch-1.0 nvarguscamerasrc num-buffers=30 sensor_id={} ! \
                 'video/x-raw(memory:NVMM),width={}, height={}, framerate={}/1, format=NV12' ! \
