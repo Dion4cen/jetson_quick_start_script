@@ -365,6 +365,7 @@ if __name__ == '__main__':
                 nvjpegenc ! \
                 multifilesink location={}_{}_{}_{}_{}.jpeg".format(sensor_id, option_[0], option_[1], fps, isp, camera_name, option_[0], option_[1], now)
 
+        print(gst_save_picture)
         try:
             if option_mode == "perview":
                 sh_(gst_preview)
