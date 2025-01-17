@@ -162,7 +162,7 @@ if __name__ == '__main__':
     title = 'Please choose your camera: '
     title_resolution = 'Please choose your resolution: '
 
-    options = ['imx477', 'imx219', 'imx519', 'imx477-stereo', 'Jetvariety', 'Hat-test']
+    options = ['imx477', 'imx219', 'imx519', 'imx708','imx477-stereo', 'Jetvariety', 'Hat-test']
     option = pick(options, title)[0][0]
     camera_name = option
 
@@ -175,6 +175,10 @@ if __name__ == '__main__':
         camera_name = args.name
 
     if option == "imx519":
+        options = get_resolution()
+        option = pick(options, title_resolution)[0][0]
+        gst = True
+    if option == "imx708":
         options = get_resolution()
         option = pick(options, title_resolution)[0][0]
         gst = True
